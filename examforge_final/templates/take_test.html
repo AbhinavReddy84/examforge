@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}{{ sub.Title }} — ExamForge{% endblock %}
+{% block page_title %}{{ sub.Title }}{% endblock %}
+
+{% block extra_head %}
+<style>
+.exam-layout   { display: grid; grid-template-columns: 1fr 280px; gap: 24px; align-items: start; }
+.question-area { }
+.q-card        { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px; margin-bottom: 24px; }
+.q-number      { font-size: 12px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }
+.q-text        { font-family: var(--font-serif); font-size: 17px; color: var(--navy); line-height: 1.6; margin-bottom: 22px; }
+.options       { display: flex; flex-direction: column; gap: 10px; }
+.option-label  { display: flex; align-items: center; gap: 14px; padding: 13px 16px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; transition: all .15s; user-select: none; }
+.option-label:hover { border-color: var(--navy); background: #f8f7f4; }
+.option-label input[type=radio] { display: none; }
+.option-label.selected { border-color: var(--navy); background: #eef2f7; }
+.option-key    { width: 30px; height: 30px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: var(--text-muted); flex-shrink: 0; }
+.option-label.selected .option-key { background: var(--navy); color: #fff; border-color: var(--navy); }
+.option-text   { font-size: 15px; color: var(--text-main); }
+
+/* Sidebar */
+.exam-sidebar  { position: sticky; top: 80px; }
+.timer-card    { background: var(--navy); border-radius: var(--radius-lg); padding: 24px; text-align: center; margin-bottom: 16px; }
+.timer-label   { font-size: 11px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: #7a94ac; margin-bottom: 8px; }
+.timer-display { font-family: var(--font-mono); font-size: 42px; font-weight: 600; color: var(--white); letter-spacing: 2px; }
+.timer-display.warning { color: var(--gold-light); }
+.timer-display.danger  { color: #ff6b6b; animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+.timer-sub     { font-size: 12px; color: #7a94ac; margin-top: 6px; }
+
+.palette-card  { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 16px; }
+.palette-title { font-size: 13px; font-weight: 500; color: var(--text-muted); margin-bottom: 12px; }
+.palette-grid  { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.palette-btn   { aspect-ratio: 1; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); font-size: 13px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .1s; }
+.palette-btn:hover { border-color: var(--navy); }
+.palette-btn.answered { background: var(--navy); color: #fff; border-color: var(--navy); }
+.palette-btn.current  { border: 2px solid var(--gold); }
+
+.submit-card   { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; }
+.answered-count { font-size: 14px; color: var(--text-muted); margin-bottom: 14px; }
+.answered-count strong { color: var(--navy); }
+</style>
+{% endblock %}
+
+{% block content %}
+<form id="exam-form" method="POST" action="{{ url_for('submit_exam', sub_id=sub.SubID) }}">
+<input type="hidden" name="time_taken" id="time-taken" value="0"/>
+
+<div class="exam-layout">
+
+  <!-- Questions -->
+  <div class="question-area" id="question-area">
+    {% for q in questions %}
+    <div class="q-card" id="qcard-{{ q.QuestionID }}" data-qid="{{ q.QuestionID }}">
+      <div class="q-number">Question {{ loop.index }} of {{ questions|length }}</div>
+      <div class="q-text">{{ q.QuestionText }}</div>
+      <div class="options">
+        {% for key, text in [('A', q.OptionA), ('B', q.OptionB), ('C', q.OptionC), ('D', q.OptionD)] %}
+        <label class="option-label {% if saved.get(q.QuestionID) == key %}selected{% endif %}"
+               data-qid="{{ q.QuestionID }}" data-opt="{{ key }}">
+          <input type="radio" name="q{{ q.QuestionID }}" value="{{ key }}"
+                 {% if saved.get(q.QuestionID) == key %}checked{% endif %}/>
+          <div class="option-key">{{ key }}</div>
+          <div class="option-text">{{ text }}</div>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+
+    <!-- Submit bar -->
+    <div class="card flex items-center justify-between" style="padding:20px">
+      <div class="text-muted">Review all answers before submitting.</div>
+      <button type="button" class="btn btn-gold"
+              onclick="confirmSubmit()">Submit Exam →</button>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="exam-sidebar">
+    <div class="timer-card">
+      <div class="timer-label">Time Remaining</div>
+      <div class="timer-display" id="timer">{{ '%02d:%02d'|format(sub.Duration, 0) }}</div>
+      <div class="timer-sub">{{ sub.Duration }} minute exam</div>
+    </div>
+
+    <div class="palette-card">
+      <div class="palette-title">Question Navigator</div>
+      <div class="palette-grid" id="palette">
+        {% for q in questions %}
+        <button type="button"
+                class="palette-btn {% if saved.get(q.QuestionID) %}answered{% endif %}"
+                id="pb-{{ q.QuestionID }}"
+                onclick="scrollToQ({{ q.QuestionID }})">{{ loop.index }}</button>
+        {% endfor %}
+      </div>
+      <div style="margin-top:12px;font-size:12px;color:var(--text-hint)">
+        <span style="display:inline-block;width:12px;height:12px;background:var(--navy);border-radius:3px;margin-right:4px;vertical-align:middle"></span>Answered
+      </div>
+    </div>
+
+    <div class="submit-card">
+      <div class="answered-count">
+        <strong id="answered-count">{{ saved|length }}</strong> of {{ questions|length }} answered
+      </div>
+      <button type="button" class="btn btn-primary w-full"
+              style="justify-content:center"
+              onclick="confirmSubmit()">Submit &amp; Finish</button>
+    </div>
+  </aside>
+</div>
+</form>
+
+<!-- Confirm dialog -->
+<div class="modal-backdrop" id="confirm-modal">
+  <div class="modal" style="max-width:420px;text-align:center">
+    <div style="font-size:36px;margin-bottom:12px">📋</div>
+    <h2 style="font-family:var(--font-serif);color:var(--navy);margin-bottom:8px">Submit Exam?</h2>
+    <p class="text-muted" style="margin-bottom:24px" id="confirm-msg">
+      You have answered <strong id="cm-answered">0</strong> of <strong>{{ questions|length }}</strong> questions.
+      This action cannot be undone.
+    </p>
+    <div class="flex gap-3" style="justify-content:center">
+      <button class="btn btn-outline" onclick="closeModal('confirm-modal')">Go Back</button>
+      <button class="btn btn-gold" onclick="doSubmit()">Yes, Submit →</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const DURATION_SEC = {{ sub.Duration }} * 60;
+const SUB_ID       = {{ sub.SubID }};
+let elapsed = 0;
+let answeredSet = new Set({{ saved.keys()|list|tojson }}.map(Number));
+
+// ── Timer ───────────────────────────────────────────────────────
+const timerEl = document.getElementById('timer');
+const timeTakenEl = document.getElementById('time-taken');
+
+const tick = setInterval(() => {
+  elapsed++;
+  timeTakenEl.value = elapsed;
+  const remaining = DURATION_SEC - elapsed;
+  if (remaining <= 0) { clearInterval(tick); doSubmit(); return; }
+  const m = Math.floor(remaining / 60);
+  const s = remaining % 60;
+  timerEl.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  if (remaining <= 60)       timerEl.className = 'timer-display danger';
+  else if (remaining <= 300) timerEl.className = 'timer-display warning';
+}, 1000);
+
+// ── Option selection + AJAX save ─────────────────────────────────
+document.querySelectorAll('.option-label').forEach(label => {
+  label.addEventListener('click', () => {
+    const qid = parseInt(label.dataset.qid);
+    const opt = label.dataset.opt;
+
+    // Update UI
+    document.querySelectorAll(`.option-label[data-qid="${qid}"]`)
+            .forEach(l => l.classList.remove('selected'));
+    label.classList.add('selected');
+    label.querySelector('input').checked = true;
+
+    // Palette
+    answeredSet.add(qid);
+    document.getElementById('pb-' + qid).classList.add('answered');
+    document.getElementById('answered-count').textContent = answeredSet.size;
+
+    // AJAX save
+    fetch('/exam/save-answer', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({sub_id: SUB_ID, question_id: qid, chosen: opt})
+    });
+  });
+});
+
+// ── Scroll to question ───────────────────────────────────────────
+function scrollToQ(qid) {
+  const el = document.getElementById('qcard-' + qid);
+  if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+// ── Submit ───────────────────────────────────────────────────────
+function confirmSubmit() {
+  document.getElementById('cm-answered').textContent = answeredSet.size;
+  openModal('confirm-modal');
+}
+
+function doSubmit() {
+  clearInterval(tick);
+  timeTakenEl.value = elapsed;
+  document.getElementById('exam-form').submit();
+}
+
+// Warn on accidental close
+window.addEventListener('beforeunload', e => {
+  e.preventDefault();
+  e.returnValue = '';
+});
+</script>
+{% endblock %}

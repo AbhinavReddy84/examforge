@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Leaderboard — {{ test.Title }}{% endblock %}
+{% block page_title %}Leaderboard{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('manage_tests') }}" class="btn btn-outline btn-sm">← Tests</a>
+<a href="{{ url_for('report_performance') }}" class="btn btn-primary btn-sm">Full Report</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Test header -->
+<div class="card mb-4" style="background:var(--navy);border-color:var(--navy)">
+  <div class="flex items-center justify-between flex-wrap" style="gap:16px">
+    <div>
+      <div style="font-family:var(--font-serif);font-size:20px;color:#fff">{{ test.Title }}</div>
+      <div style="color:#8aabb8;font-size:13px;margin-top:4px">
+        {{ test.TotalMarks }} marks · Pass: {{ test.PassMarks }} · {{ test.Duration }} min
+      </div>
+    </div>
+    <div class="flex gap-4">
+      <div style="text-align:center">
+        <div style="font-family:var(--font-mono);font-size:28px;color:var(--gold-light)">{{ board|length }}</div>
+        <div style="font-size:11px;color:#4a6880;text-transform:uppercase;letter-spacing:.5px">Students</div>
+      </div>
+      {% set passed = board|selectattr('IsPassed','equalto',1)|list|length %}
+      <div style="text-align:center">
+        <div style="font-family:var(--font-mono);font-size:28px;color:#5de09e">{{ passed }}</div>
+        <div style="font-size:11px;color:#4a6880;text-transform:uppercase;letter-spacing:.5px">Passed</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-family:var(--font-mono);font-size:28px;color:#ff8080">{{ board|length - passed }}</div>
+        <div style="font-size:11px;color:#4a6880;text-transform:uppercase;letter-spacing:.5px">Failed</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Top 3 podium -->
+{% if board|length >= 3 %}
+<div style="display:flex;justify-content:center;align-items:flex-end;gap:16px;margin-bottom:32px">
+  <!-- 2nd place -->
+  <div style="text-align:center">
+    <div style="width:70px;height:70px;border-radius:50%;background:#c8d8e8;display:flex;align-items:center;justify-content:center;font-family:var(--font-serif);font-size:22px;color:var(--navy);margin:0 auto 8px">
+      {{ board[1].StudentName[0] }}
+    </div>
+    <div style="font-size:13px;font-weight:500;color:var(--navy)">{{ board[1].StudentName }}</div>
+    <div style="font-family:var(--font-mono);font-size:16px;color:#888">{{ board[1].Percentage }}%</div>
+    <div style="background:#c0c8d4;border-radius:8px 8px 0 0;padding:16px 24px;margin-top:8px;font-size:20px">🥈</div>
+  </div>
+  <!-- 1st place -->
+  <div style="text-align:center">
+    <div style="width:84px;height:84px;border-radius:50%;background:var(--gold-pale);border:3px solid var(--gold);display:flex;align-items:center;justify-content:center;font-family:var(--font-serif);font-size:28px;color:var(--navy);margin:0 auto 8px">
+      {{ board[0].StudentName[0] }}
+    </div>
+    <div style="font-size:15px;font-weight:600;color:var(--navy)">{{ board[0].StudentName }}</div>
+    <div style="font-family:var(--font-mono);font-size:18px;color:var(--gold)">{{ board[0].Percentage }}%</div>
+    <div style="background:var(--gold);border-radius:8px 8px 0 0;padding:20px 24px;margin-top:8px;font-size:24px">🥇</div>
+  </div>
+  <!-- 3rd place -->
+  <div style="text-align:center">
+    <div style="width:70px;height:70px;border-radius:50%;background:#e8d8c8;display:flex;align-items:center;justify-content:center;font-family:var(--font-serif);font-size:22px;color:var(--navy);margin:0 auto 8px">
+      {{ board[2].StudentName[0] }}
+    </div>
+    <div style="font-size:13px;font-weight:500;color:var(--navy)">{{ board[2].StudentName }}</div>
+    <div style="font-family:var(--font-mono);font-size:16px;color:#888">{{ board[2].Percentage }}%</div>
+    <div style="background:#c8a878;border-radius:8px 8px 0 0;padding:12px 24px;margin-top:8px;font-size:20px">🥉</div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Full leaderboard -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Full Rankings</h2>
+  </div>
+  {% if board %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>#</th><th>Student</th><th>Score</th><th>Percentage</th><th>Status</th><th>Time Taken</th><th>Submitted</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for r in board %}
+        <tr {% if r.Rank_Position <= 3 %}style="background:var(--gold-pale)"{% endif %}>
+          <td>
+            {% if r.Rank_Position == 1 %}<span style="font-size:18px">🥇</span>
+            {% elif r.Rank_Position == 2 %}<span style="font-size:18px">🥈</span>
+            {% elif r.Rank_Position == 3 %}<span style="font-size:18px">🥉</span>
+            {% else %}<span class="font-mono text-muted">{{ r.Rank_Position }}</span>{% endif %}
+          </td>
+          <td style="font-weight:500">{{ r.StudentName }}</td>
+          <td class="font-mono">{{ r.TotalScore }} / {{ test.TotalMarks }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="progress" style="width:80px">
+                <div class="progress-bar {% if r.Percentage >= 60 %}green{% else %}red{% endif %}"
+                     style="width:{{ r.Percentage }}%"></div>
+              </div>
+              <span class="font-mono">{{ r.Percentage }}%</span>
+            </div>
+          </td>
+          <td>
+            {% if r.IsPassed %}<span class="badge badge-green">Pass</span>
+            {% else %}<span class="badge badge-red">Fail</span>{% endif %}
+          </td>
+          <td class="font-mono text-muted">
+            {% set m = (r.TimeTaken // 60) if r.TimeTaken else 0 %}
+            {% set s = (r.TimeTaken % 60) if r.TimeTaken else 0 %}
+            {{ '%02d:%02d'|format(m, s) }}
+          </td>
+          <td class="text-muted">{{ r.SubmittedAt.strftime('%d %b %H:%M') if r.SubmittedAt else '—' }}</td>
+          <td><a href="{{ url_for('result', sub_id=loop.index) }}" class="btn btn-outline btn-sm">View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">
+    <div class="empty-icon">📊</div>
+    <h3>No submissions yet</h3>
+    <p>Results will appear here once students complete the exam.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

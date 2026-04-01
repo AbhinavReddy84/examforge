@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — ExamForge{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- ── Student Dashboard ──────────────────────────────────────── -->
+{% if session.role == 'student' %}
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-label">Available Tests</div>
+    <div class="stat-value">{{ data.tests|length }}</div>
+    <div class="stat-sub">ready to attempt</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Completed</div>
+    <div class="stat-value">{{ data.recent|length }}</div>
+    <div class="stat-sub">graded submissions</div>
+  </div>
+  {% if data.recent %}
+  <div class="stat-card">
+    <div class="stat-label">Best Score</div>
+    <div class="stat-value">{{ data.recent|map(attribute='Percentage')|max|round(1) }}%</div>
+    <div class="stat-sub">across all exams</div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Available tests -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h2 class="card-title">Available Exams</h2>
+  </div>
+
+  {% if data.tests %}
+  <div class="card-grid">
+    {% for t in data.tests %}
+    <div class="card" style="border-left:4px solid var(--gold);padding:20px">
+      <div style="font-family:var(--font-serif);font-size:16px;color:var(--navy);margin-bottom:6px">{{ t.Title }}</div>
+      <div class="text-muted" style="margin-bottom:14px">{{ t.Duration }} min &nbsp;·&nbsp; {{ t.TotalMarks }} marks &nbsp;·&nbsp; Pass: {{ t.PassMarks }}</div>
+
+      <div class="progress" style="margin-bottom:14px">
+        <div class="progress-bar" style="width:{{ [t.attempts / t.MaxAttempts * 100, 100]|min }}%"></div>
+      </div>
+      <div class="text-sm text-muted" style="margin-bottom:14px">
+        Attempts: {{ t.attempts }} / {{ t.MaxAttempts }}
+      </div>
+
+      {% if t.attempts < t.MaxAttempts %}
+      <a href="{{ url_for('start_exam', test_id=t.TestID) }}"
+         class="btn btn-gold btn-sm"
+         onclick="return confirm('Start exam: {{ t.Title }}? Timer will begin immediately.')">
+        Start Exam →
+      </a>
+      {% else %}
+      <span class="badge badge-gray">No attempts remaining</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">
+    <div class="empty-icon">📋</div>
+    <h3>No exams available</h3>
+    <p>Check back when your instructor schedules an exam.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Recent results -->
+{% if data.recent %}
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Recent Results</h2>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Test</th><th>Score</th><th>Percentage</th><th>Status</th><th>Date</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in data.recent %}
+        <tr>
+          <td style="font-weight:500">{{ r.Title }}</td>
+          <td class="font-mono">{{ r.TotalScore }} / {{ r.MaxScore }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="progress" style="width:80px">
+                <div class="progress-bar {% if r.Percentage >= 60 %}green{% elif r.Percentage < 40 %}red{% endif %}"
+                     style="width:{{ r.Percentage }}%"></div>
+              </div>
+              {{ r.Percentage }}%
+            </div>
+          </td>
+          <td>
+            {% if r.IsPassed %}
+            <span class="badge badge-green">Passed</span>
+            {% else %}
+            <span class="badge badge-red">Failed</span>
+            {% endif %}
+          </td>
+          <td class="text-muted">{{ r.SubmittedAt.strftime('%d %b %Y') }}</td>
+          <td><a href="{{ url_for('result', sub_id=r.SubID) }}" class="btn btn-outline btn-sm">Review</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+
+<!-- ── Staff / Instructor Dashboard ──────────────────────────── -->
+{% else %}
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-label">Total Tests</div>
+    <div class="stat-value">{{ data.tests|length }}</div>
+    <div class="stat-sub">in system</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Students</div>
+    <div class="stat-value">{{ data.students }}</div>
+    <div class="stat-sub">registered</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Graded</div>
+    <div class="stat-value">{{ data.graded }}</div>
+    <div class="stat-sub">submissions</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Pending Approval</div>
+    <div class="stat-value {% if data.pending > 0 %}text-gold{% endif %}" style="{% if data.pending > 0 %}color:var(--gold){% endif %}">{{ data.pending }}</div>
+    <div class="stat-sub">questions</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Recent Tests</h2>
+    <a href="{{ url_for('manage_tests') }}" class="btn btn-primary btn-sm">Manage Tests →</a>
+  </div>
+
+  {% if data.tests %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Title</th><th>Questions</th><th>Marks</th><th>Duration</th><th>Status</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for t in data.tests %}
+        <tr>
+          <td style="font-weight:500">{{ t.Title }}
+            <div class="text-muted">{{ t.CourseCode or '—' }} · by {{ t.CreatorName }}</div>
+          </td>
+          <td class="font-mono">{{ t.ApprovedQuestions }} / {{ t.TotalQuestions }}</td>
+          <td class="font-mono">{{ t.TotalMarks }}</td>
+          <td>{{ t.Duration }} min</td>
+          <td>
+            {% if t.IsActive %}
+            <span class="badge badge-green">Active</span>
+            {% else %}
+            <span class="badge badge-gray">Inactive</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="flex gap-2">
+              <a href="{{ url_for('questions', test_id=t.TestID) }}" class="btn btn-outline btn-sm">Questions</a>
+              <a href="{{ url_for('leaderboard', test_id=t.TestID) }}" class="btn btn-outline btn-sm">Results</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">
+    <div class="empty-icon">📝</div>
+    <h3>No tests yet</h3>
+    <p><a href="{{ url_for('manage_tests') }}">Create your first test</a></p>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

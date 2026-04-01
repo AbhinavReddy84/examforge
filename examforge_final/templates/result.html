@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Result — {{ sub.TestTitle }}{% endblock %}
+{% block page_title %}Exam Result{% endblock %}
+
+{% block extra_head %}
+<style>
+.result-hero     { background: var(--navy); border-radius: var(--radius-lg); padding: 40px; text-align: center; margin-bottom: 28px; color: #fff; }
+.result-verdict  { font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; }
+.result-verdict.pass { color: #5de09e; }
+.result-verdict.fail { color: #ff8080; }
+.result-score    { font-family: var(--font-mono); font-size: 64px; font-weight: 600; line-height: 1; }
+.result-score small { font-size: 24px; opacity: .5; }
+.result-pct      { font-size: 20px; color: #8aabb8; margin-top: 6px; }
+.result-test     { font-family: var(--font-serif); font-size: 18px; margin-bottom: 20px; color: #c8d8e8; }
+.result-meta     { display: flex; gap: 32px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+.result-meta-item .label { font-size: 11px; color: #4a6880; text-transform: uppercase; letter-spacing: .5px; }
+.result-meta-item .val   { font-size: 18px; font-weight: 600; font-family: var(--font-mono); color: #fff; margin-top: 2px; }
+
+.donut-wrap  { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.legend-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+.answer-row        { padding: 20px; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 14px; }
+.answer-row.correct { border-left: 4px solid var(--green); }
+.answer-row.wrong   { border-left: 4px solid var(--red); }
+.answer-row.blank   { border-left: 4px solid #ccc; }
+.answer-q    { font-family: var(--font-serif); font-size: 15px; color: var(--navy); margin-bottom: 12px; }
+.answer-opts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.opt-pill    { padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 500; border: 1px solid var(--border); }
+.opt-pill.correct-ans { background: var(--green-bg); color: var(--green); border-color: #b8e8cc; }
+.opt-pill.chosen-wrong { background: var(--red-bg); color: var(--red); border-color: #f5c0bc; text-decoration: line-through; }
+.opt-pill.chosen-right { background: var(--green-bg); color: var(--green); border-color: #b8e8cc; }
+.explanation { font-size: 13px; color: var(--text-muted); background: var(--surface); padding: 8px 12px; border-radius: 8px; margin-top: 8px; }
+</style>
+{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('dashboard') }}" class="btn btn-outline btn-sm">← Dashboard</a>
+{% if session.role != 'student' %}
+<a href="{{ url_for('leaderboard', test_id=sub.TestID) }}" class="btn btn-primary btn-sm">Leaderboard</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+<!-- Hero card -->
+<div class="result-hero">
+  <div class="result-test">{{ sub.TestTitle }}</div>
+  <div class="result-verdict {{ 'pass' if sub.IsPassed else 'fail' }}">
+    {{ '✓  PASSED' if sub.IsPassed else '✗  FAILED' }}
+  </div>
+  <div class="result-score">
+    {{ sub.TotalScore|int }}<small>/{{ sub.MaxScore }}</small>
+  </div>
+  <div class="result-pct">{{ sub.Percentage }}%</div>
+
+  <div class="result-meta">
+    <div class="result-meta-item">
+      <div class="label">Student</div>
+      <div class="val" style="font-family:var(--font-sans);font-size:15px">{{ sub.StudentName }}</div>
+    </div>
+    <div class="result-meta-item">
+      <div class="label">Time Taken</div>
+      <div class="val">
+        {% set mins = (sub.TimeTaken // 60) %}
+        {% set secs = (sub.TimeTaken % 60) %}
+        {{ '%02d:%02d'|format(mins, secs) }}
+      </div>
+    </div>
+    <div class="result-meta-item">
+      <div class="label">Attempt</div>
+      <div class="val">#{{ sub.AttemptNumber }}</div>
+    </div>
+    <div class="result-meta-item">
+      <div class="label">Pass Mark</div>
+      <div class="val">{{ sub.PassMarks }}</div>
+    </div>
+    <div class="result-meta-item">
+      <div class="label">Submitted</div>
+      <div class="val" style="font-size:13px;font-family:var(--font-sans)">{{ sub.SubmittedAt.strftime('%d %b %Y %H:%M') }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Summary stats + mini chart -->
+{% set correct = answers|selectattr('IsCorrect','equalto',1)|list|length %}
+{% set wrong   = answers|selectattr('IsCorrect','equalto',0)|selectattr('ChosenOption','ne','')|list|length %}
+{% set blank   = answers|selectattr('ChosenOption','equalto','')|list|length %}
+{% set total   = answers|length %}
+
+<div class="card mb-4">
+  <div class="card-header">
+    <h2 class="card-title">Summary</h2>
+  </div>
+  <div class="stat-grid" style="margin-bottom:0">
+    <div class="stat-card">
+      <div class="stat-label">Correct</div>
+      <div class="stat-value" style="color:var(--green)">{{ correct }}</div>
+      <div class="stat-sub">of {{ total }} questions</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Wrong</div>
+      <div class="stat-value" style="color:var(--red)">{{ wrong }}</div>
+      <div class="stat-sub">negative marks applied</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Unattempted</div>
+      <div class="stat-value">{{ blank }}</div>
+      <div class="stat-sub">no marks deducted</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Accuracy</div>
+      <div class="stat-value">{{ (correct / (correct+wrong) * 100)|round(1) if (correct+wrong) > 0 else 0 }}%</div>
+      <div class="stat-sub">of attempted questions</div>
+    </div>
+  </div>
+</div>
+
+<!-- Detailed answer review -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Detailed Review</h2>
+    <div class="flex gap-2">
+      <span class="badge badge-green">{{ correct }} correct</span>
+      <span class="badge badge-red">{{ wrong }} wrong</span>
+      <span class="badge badge-gray">{{ blank }} blank</span>
+    </div>
+  </div>
+
+  {% for a in answers %}
+  {% set row_class = 'correct' if a.IsCorrect else ('blank' if a.ChosenOption == '' else 'wrong') %}
+  <div class="answer-row {{ row_class }}">
+    <div class="answer-q">{{ loop.index }}. {{ a.QuestionText }}</div>
+    <div class="answer-opts">
+      {% for key, text in [('A', a.OptionA), ('B', a.OptionB), ('C', a.OptionC), ('D', a.OptionD)] %}
+      <span class="opt-pill
+        {% if key == a.CorrectOption %}correct-ans{% endif %}
+        {% if key == a.ChosenOption and not a.IsCorrect %}chosen-wrong{% endif %}
+        {% if key == a.ChosenOption and a.IsCorrect %}chosen-right{% endif %}
+      ">{{ key }}. {{ text }}</span>
+      {% endfor %}
+    </div>
+
+    <div class="flex items-center gap-3" style="font-size:13px">
+      <span>Your answer:
+        <strong>{% if a.ChosenOption %}{{ a.ChosenOption }}{% else %}—{% endif %}</strong>
+      </span>
+      <span>Correct: <strong style="color:var(--green)">{{ a.CorrectOption }}</strong></span>
+      <span>Marks:
+        <strong class="font-mono"
+          style="color:{% if a.MarksAwarded > 0 %}var(--green){% elif a.MarksAwarded < 0 %}var(--red){% else %}var(--text-muted){% endif %}">
+          {% if a.MarksAwarded > 0 %}+{% endif %}{{ a.MarksAwarded }}
+        </strong>
+      </span>
+    </div>
+
+    {% if a.Explanation %}
+    <div class="explanation">💡 {{ a.Explanation }}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

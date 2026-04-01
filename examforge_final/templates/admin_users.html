@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}User Management — ExamForge{% endblock %}
+{% block page_title %}User Management{% endblock %}
+
+{% block content %}
+
+<div class="stat-grid">
+  {% set role_counts = {} %}
+  {% for u in users %}{% set _ = role_counts.update({u.Role: role_counts.get(u.Role, 0) + 1}) %}{% endfor %}
+  {% for role in ['admin','instructor','ta','incharge','student'] %}
+  <div class="stat-card">
+    <div class="stat-label">{{ role|capitalize }}</div>
+    <div class="stat-value">{{ role_counts.get(role, 0) }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">All Users</h2>
+    <span class="badge badge-blue">{{ users|length }} total</span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Created</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td class="font-mono text-muted">{{ u.UserID }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:32px;height:32px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--gold-light);flex-shrink:0">
+                {{ u.Name[0] }}
+              </div>
+              <span style="font-weight:500">{{ u.Name }}</span>
+            </div>
+          </td>
+          <td class="text-muted">{{ u.Email }}</td>
+          <td>
+            {% set role_cls = {'admin':'red','instructor':'blue','ta':'blue','incharge':'gold','student':'green'} %}
+            <span class="badge badge-{{ role_cls.get(u.Role, 'gray') }} role-badge">{{ u.Role }}</span>
+          </td>
+          <td>
+            {% if u.IsActive %}
+            <span class="badge badge-green">Active</span>
+            {% else %}
+            <span class="badge badge-red">Inactive</span>
+            {% endif %}
+          </td>
+          <td class="text-muted">{{ u.CreatedAt.strftime('%d %b %Y') }}</td>
+          <td>
+            {% if u.UserID != session.user_id %}
+            <a href="{{ url_for('toggle_user', uid=u.UserID) }}"
+               class="btn btn-sm {% if u.IsActive %}btn-danger{% else %}btn-outline{% endif %}"
+               onclick="return confirm('Toggle user access?')">
+              {{ 'Disable' if u.IsActive else 'Enable' }}
+            </a>
+            {% else %}
+            <span class="text-muted text-sm">You</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

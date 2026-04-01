@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Manage Tests — ExamForge{% endblock %}
+{% block page_title %}Test Management{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn btn-gold btn-sm" onclick="openModal('create-modal')">+ New Test</button>
+{% endblock %}
+
+{% block content %}
+
+<!-- Tests table -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">All Tests</h2>
+    <span class="badge badge-blue">{{ tests|length }} total</span>
+  </div>
+
+  {% if tests %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Course</th>
+          <th>Questions</th>
+          <th>Marks</th>
+          <th>Duration</th>
+          <th>Window</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tests %}
+        <tr>
+          <td>
+            <div style="font-weight:500;color:var(--navy)">{{ t.Title }}</div>
+            <div class="text-muted">by {{ t.CreatorName }}</div>
+          </td>
+          <td>{{ t.CourseCode or '—' }}</td>
+          <td>
+            <span class="font-mono">{{ t.ApprovedQuestions }}/{{ t.TotalQuestions }}</span>
+            {% if t.TotalQuestions > t.ApprovedQuestions %}
+            <span class="badge badge-gold" style="font-size:11px">{{ t.TotalQuestions - t.ApprovedQuestions }} pending</span>
+            {% endif %}
+          </td>
+          <td class="font-mono">{{ t.TotalMarks }}</td>
+          <td>{{ t.Duration }} min</td>
+          <td class="text-sm">
+            {{ t.StartTime.strftime('%d %b') }} – {{ t.EndTime.strftime('%d %b %Y') }}
+          </td>
+          <td>
+            {% if t.IsActive %}
+            <span class="badge badge-green">Active</span>
+            {% else %}
+            <span class="badge badge-gray">Inactive</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="flex gap-2" style="flex-wrap:wrap">
+              <a href="{{ url_for('questions', test_id=t.TestID) }}" class="btn btn-outline btn-sm">Questions</a>
+              <a href="{{ url_for('leaderboard', test_id=t.TestID) }}" class="btn btn-outline btn-sm">Results</a>
+              <a href="{{ url_for('toggle_test', test_id=t.TestID) }}"
+                 class="btn btn-sm {% if t.IsActive %}btn-danger{% else %}btn-outline{% endif %}"
+                 onclick="return confirm('Toggle test status?')">
+                {{ 'Deactivate' if t.IsActive else 'Activate' }}
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">
+    <div class="empty-icon">📋</div>
+    <h3>No tests created yet</h3>
+    <p>Click "+ New Test" to get started.</p>
+  </div>
+  {% endif %}
+</div>
+
+
+<!-- Create Test Modal -->
+<div class="modal-backdrop" id="create-modal">
+  <div class="modal">
+    <h2 class="modal-title">Create New Test</h2>
+    <form method="POST" action="{{ url_for('create_test') }}">
+
+      <div class="form-group">
+        <label class="form-label">Test Title *</label>
+        <input class="form-control" name="title" required placeholder="e.g. DBMS Mid-Term Exam"/>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Course (optional)</label>
+        <select class="form-control" name="course_id">
+          <option value="">— No course —</option>
+          {% for c in courses %}
+          <option value="{{ c.CourseID }}">{{ c.Code }} — {{ c.Title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Duration (minutes) *</label>
+          <input class="form-control" name="duration" type="number" value="60" min="1" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pass Marks *</label>
+          <input class="form-control" name="pass_marks" type="number" value="6" min="0" required/>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Start Date &amp; Time *</label>
+          <input class="form-control" name="start_time" type="datetime-local" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">End Date &amp; Time *</label>
+          <input class="form-control" name="end_time" type="datetime-local" required/>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Max Attempts</label>
+          <input class="form-control" name="max_attempts" type="number" value="1" min="1" max="5"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Shuffle Questions</label>
+          <select class="form-control" name="shuffle">
+            <option value="0">No</option>
+            <option value="1">Yes</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex gap-3" style="justify-content:flex-end;margin-top:8px">
+        <button type="button" class="btn btn-outline" onclick="closeModal('create-modal')">Cancel</button>
+        <button type="submit" class="btn btn-gold">Create Test →</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

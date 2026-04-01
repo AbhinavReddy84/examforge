@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ExamForge — Sign In</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0f1c2e;--navy-mid:#1a2d44;--gold:#c8922a;--gold-light:#e0b14a;
+  --surface:#f8f7f4;--white:#fff;--border:#e4e0d8;
+  --text-main:#1a1a1a;--text-muted:#6b6560;--red:#c0392b;--red-bg:#fcecea;
+}
+html,body{height:100%;background:var(--surface);font-family:'DM Sans',sans-serif}
+.page{min-height:100vh;display:flex}
+/* Left panel */
+.panel-left{
+  width:420px;flex-shrink:0;
+  background:var(--navy);
+  display:flex;flex-direction:column;justify-content:space-between;
+  padding:48px 40px;
+}
+.brand{font-family:'Playfair Display',serif;font-size:28px;color:#fff}
+.brand span{color:var(--gold)}
+.tagline{font-size:12px;color:#7a94ac;letter-spacing:.8px;text-transform:uppercase;margin-top:4px}
+.panel-left-body{flex:1;display:flex;flex-direction:column;justify-content:center}
+.panel-left-body h2{font-family:'Playfair Display',serif;font-size:30px;color:#fff;line-height:1.3;margin-bottom:16px}
+.panel-left-body p{font-size:14px;color:#8aabb8;line-height:1.7}
+.demo-accounts{margin-top:32px}
+.demo-accounts .label{font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:#4a6880;margin-bottom:10px}
+.demo-row{display:flex;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,.05);border-radius:8px;margin-bottom:6px}
+.demo-row .role{font-size:13px;color:var(--gold-light);font-weight:500;text-transform:capitalize}
+.demo-row .cred{font-size:12px;color:#7a94ac;font-family:'DM Mono',monospace}
+.panel-foot{font-size:12px;color:#4a6880}
+/* Right panel */
+.panel-right{flex:1;display:flex;align-items:center;justify-content:center;padding:40px}
+.login-box{width:100%;max-width:420px}
+.login-box h1{font-family:'Playfair Display',serif;font-size:26px;color:var(--navy);margin-bottom:6px}
+.login-box .sub{font-size:14px;color:var(--text-muted);margin-bottom:32px}
+.form-group{margin-bottom:18px}
+.form-label{display:block;font-size:13px;font-weight:500;color:var(--text-muted);margin-bottom:6px}
+.form-control{
+  width:100%;padding:11px 14px;border:1px solid var(--border);
+  border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;
+  color:var(--text-main);background:var(--white);outline:none;
+  transition:border-color .15s
+}
+.form-control:focus{border-color:var(--navy)}
+.btn-submit{
+  width:100%;padding:12px;background:var(--navy);color:#fff;
+  border:none;border-radius:10px;font-family:'DM Sans',sans-serif;
+  font-size:15px;font-weight:600;cursor:pointer;transition:background .15s;
+  margin-top:4px
+}
+.btn-submit:hover{background:var(--navy-mid)}
+.flash{padding:10px 14px;border-radius:8px;font-size:14px;margin-bottom:16px}
+.flash-danger{background:var(--red-bg);color:var(--red);border:1px solid #f5c0bc}
+.divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--text-muted);font-size:13px}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+@media(max-width:720px){.panel-left{display:none}.panel-right{padding:32px 20px}}
+</style>
+</head>
+<body>
+<div class="page">
+  <!-- Left branding -->
+  <div class="panel-left">
+    <div>
+      <div class="brand">Exam<span>Forge</span></div>
+      <div class="tagline">Online MCQ Platform</div>
+    </div>
+
+    <div class="panel-left-body">
+      <h2>Assess. Evaluate.<br/>Elevate.</h2>
+      <p>A complete examination platform with automated grading, role-based access, and real-time analytics — backed by a robust relational database.</p>
+
+      <div class="demo-accounts">
+        <div class="label">Demo accounts (password: password123)</div>
+        <div class="demo-row">
+          <span class="role">Admin</span>
+          <span class="cred"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a7c6c3cacec9e7c2dfc6cac1c8d5c0c289c2c3d2">[email&#160;protected]</a></span>
+        </div>
+        <div class="demo-row">
+          <span class="role">Instructor</span>
+          <span class="cred"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="700002190911301508111d161f0217155e151405">[email&#160;protected]</a></span>
+        </div>
+        <div class="demo-row">
+          <span class="role">Student</span>
+          <span class="cred"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d9aae899bca1b8b4bfb6abbebcf7bcbdac">[email&#160;protected]</a></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-foot">© 2026 ExamForge · CS301 DB Project</div>
+  </div>
+
+  <!-- Right login form -->
+  <div class="panel-right">
+    <div class="login-box">
+      <h1>Welcome back</h1>
+      <p class="sub">Sign in to your account to continue.</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+          <div class="flash flash-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      {% endwith %}
+
+     <form method="POST" action="{{ url_for('login') }}">
+    
+    <div class="form-group">
+        <label class="form-label" for="email">Email address</label>
+        <input class="form-control" type="email" id="email" name="email"
+               placeholder="you@examforge.edu" required autocomplete="email"/>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input class="form-control" type="password" id="password" name="password"
+               placeholder="Enter your password" required/>
+    </div>
+
+    <button class="btn-submit" type="submit">
+        Sign in →
+    </button>
+
+</form>

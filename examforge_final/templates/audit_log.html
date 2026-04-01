@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Audit Log — ExamForge{% endblock %}
+{% block page_title %}Audit Log{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">System Audit Log</h2>
+    <span class="badge badge-blue">Last 200 events</span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Time</th><th>User</th><th>Action</th><th>Table</th><th>Record</th><th>Details</th></tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td class="font-mono text-muted" style="white-space:nowrap">
+            {{ log.CreatedAt.strftime('%d %b %H:%M:%S') }}
+          </td>
+          <td>{{ log.UserName or '—' }}</td>
+          <td>
+            {% set action_colors = {
+              'REGISTER': 'blue', 'LOGIN': 'blue',
+              'CREATE_TEST': 'green', 'ADD_QUESTION': 'green', 'APPROVE_QUESTION': 'green',
+              'EDIT_QUESTION': 'gold', 'ROLE_CHANGE': 'gold',
+              'START_EXAM': 'blue', 'EXAM_GRADED': 'green',
+              'DELETE': 'red'
+            } %}
+            <span class="badge badge-{{ action_colors.get(log.Action, 'gray') }} font-mono" style="font-size:11px">
+              {{ log.Action }}
+            </span>
+          </td>
+          <td class="text-muted">{{ log.TableName or '—' }}</td>
+          <td class="font-mono text-muted">#{{ log.RecordID or '—' }}</td>
+          <td class="text-muted text-sm">{{ log.NewValue or log.OldValue or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

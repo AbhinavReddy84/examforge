@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Performance Report — ExamForge{% endblock %}
+{% block page_title %}Performance Reports{% endblock %}
+
+{% block content %}
+
+<!-- Student performance -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h2 class="card-title">Student Performance Overview</h2>
+    <span class="badge badge-blue">{{ performance|length }} students</span>
+  </div>
+
+  {% if performance %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Student</th><th>Tests Attempted</th><th>Avg %</th><th>Best %</th><th>Lowest %</th><th>Passed</th><th>Failed</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in performance %}
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:32px;height:32px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--gold-light);flex-shrink:0">
+                {{ p.StudentName[0] }}
+              </div>
+              <div>
+                <div style="font-weight:500">{{ p.StudentName }}</div>
+                <div class="text-muted">{{ p.Email }}</div>
+              </div>
+            </div>
+          </td>
+          <td class="font-mono">{{ p.TestsAttempted }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="progress" style="width:70px">
+                <div class="progress-bar {% if p.AvgPercentage >= 60 %}green{% else %}red{% endif %}"
+                     style="width:{{ p.AvgPercentage }}%"></div>
+              </div>
+              <span class="font-mono">{{ p.AvgPercentage }}%</span>
+            </div>
+          </td>
+          <td class="font-mono" style="color:var(--green)">{{ p.BestPercentage }}%</td>
+          <td class="font-mono" style="color:var(--red)">{{ p.LowestPercentage }}%</td>
+          <td><span class="badge badge-green">{{ p.TestsPassed }}</span></td>
+          <td><span class="badge badge-red">{{ p.TestsFailed }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">
+    <div class="empty-icon">📈</div>
+    <h3>No data yet</h3>
+    <p>Student performance will appear after exams are submitted.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Contributor stats -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Question Contributor Statistics</h2>
+  </div>
+
+  {% if contributors %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Role</th><th>Questions Added</th><th>Approved</th><th>Pending</th><th>Approval Rate</th></tr>
+      </thead>
+      <tbody>
+        {% for c in contributors %}
+        <tr>
+          <td style="font-weight:500">{{ c.Name }}</td>
+          <td><span class="badge badge-blue role-badge">{{ c.Role }}</span></td>
+          <td class="font-mono">{{ c.TotalAdded }}</td>
+          <td class="font-mono" style="color:var(--green)">{{ c.TotalApproved }}</td>
+          <td class="font-mono" style="color:var(--gold)">{{ c.PendingApproval }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="progress" style="width:80px">
+                <div class="progress-bar {% if c.ApprovalRate and c.ApprovalRate >= 60 %}green{% else %}red{% endif %}"
+                     style="width:{{ c.ApprovalRate or 0 }}%"></div>
+              </div>
+              {{ c.ApprovalRate or 0 }}%
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty"><h3>No contributors yet</h3></div>
+  {% endif %}
+</div>
+
+{% endblock %}
