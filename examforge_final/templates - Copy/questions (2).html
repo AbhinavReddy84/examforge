@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% block title %}Questions — {{ test.Title }}{% endblock %}
+{% block content %}
+<div class="page-header flex items-center justify-between" style="flex-wrap:wrap;gap:1rem">
+  <div>
+    <h1 class="page-title">📝 Questions</h1>
+    <p class="page-sub">{{ test.Title }} &mdash; {{ questions|length }} question(s)</p>
+  </div>
+  <div class="flex gap-2">
+    <a href="{{ url_for('manage_tests') }}" class="btn btn-secondary btn-sm">← Tests</a>
+    <a href="{{ url_for('leaderboard', test_id=test.TestID) }}" class="btn btn-outline btn-sm">🏆 Leaderboard</a>
+    <a href="{{ url_for('question_accuracy', test_id=test.TestID) }}" class="btn btn-outline btn-sm">📊 Analytics</a>
+    <button class="btn btn-primary" onclick="openModal('addQModal')">+ Add Question</button>
+  </div>
+</div>
+
+<!-- Summary Bar -->
+<div class="card mb-4" style="padding:1rem 1.5rem">
+  <div class="flex gap-3" style="flex-wrap:wrap">
+    <span>Total Marks: <strong class="text-accent">{{ test.TotalMarks }}</strong></span>
+    <span>|</span>
+    <span>Pass Marks: <strong>{{ test.PassMarks }}</strong></span>
+    <span>|</span>
+    <span>Approved: <strong class="text-success">{{ questions | selectattr('IsApproved','eq',1) | list | length }}</strong></span>
+    <span>|</span>
+    <span>Pending: <strong class="text-warning">{{ questions | selectattr('IsApproved','eq',0) | list | length }}</strong></span>
+  </div>
+</div>
+
+{% if questions %}
+<div class="card">
+  <div class="card-body" style="padding:0">
+    <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Question</th><th>Options</th><th>Correct</th>
+          <th>Marks</th><th>Neg</th><th>By</th><th>Status</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for q in questions %}
+        <tr>
+          <td class="text-muted">{{ loop.index }}</td>
+          <td style="max-width:280px">
+            <div style="line-height:1.4">{{ q.QuestionText[:120] }}{% if q.QuestionText|length > 120 %}…{% endif %}</div>
+          </td>
+          <td style="font-size:.8rem;color:var(--muted)">
+            <div>A: {{ q.OptionA[:30] }}{% if q.OptionA|length>30%}…{% endif %}</div>
+            <div>B: {{ q.OptionB[:30] }}{% if q.OptionB|length>30%}…{% endif %}</div>
+            <div>C: {{ q.OptionC[:30] }}{% if q.OptionC|length>30%}…{% endif %}</div>
+            <div>D: {{ q.OptionD[:30] }}{% if q.OptionD|length>30%}…{% endif %}</div>
+          </td>
+          <td><span class="badge badge-accent">{{ q.CorrectOption }}</span></td>
+          <td>{{ q.Marks }}</td>
+          <td class="text-muted">{{ q.NegativeMarks }}</td>
+          <td class="text-sm text-muted">{{ q.AddedByName }}</td>
+          <td>
+            {% if q.IsApproved %}
+              <span class="badge badge-success">Approved</span>
+            {% else %}
+              <span class="badge badge-warning">Pending</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="flex gap-2">
+              <button class="btn btn-outline btn-sm" onclick="openEditModal({{ q.QuestionID }})">✏️</button>
+              {% if session.role in ['incharge','admin'] and not q.IsApproved %}
+              <a href="{{ url_for('approve_question', qid=q.QuestionID) }}" class="btn btn-success btn-sm">✓</a>
+              {% endif %}
+              {% if session.role in ['incharge','admin'] %}
+              <button class="btn btn-danger btn-sm" onclick="confirmDelete('{{ url_for('delete_question', qid=q.QuestionID) }}','question')">🗑</button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="card">
+  <div class="card-body">
+    <div class="empty">
+      <div class="empty-icon">📝</div>
+      <div class="empty-text">No questions yet. Add your first question!</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ADD QUESTION MODAL -->
+<div class="modal-overlay" id="addQModal">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <span class="modal-title">Add New Question</span>
+      <button class="modal-close" onclick="closeModal('addQModal')">×</button>
+    </div>
+    <form method="POST" action="{{ url_for('add_question') }}" id="addQForm">
+      <input type="hidden" name="test_id" value="{{ test.TestID }}">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Question Text *</label>
+          <textarea class="form-control" name="question_text" rows="3" required placeholder="Enter your question here..."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Option A *</label>
+            <input class="form-control" name="option_a" required placeholder="Option A">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Option B *</label>
+            <input class="form-control" name="option_b" required placeholder="Option B">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Option C *</label>
+            <input class="form-control" name="option_c" required placeholder="Option C">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Option D *</label>
+            <input class="form-control" name="option_d" required placeholder="Option D">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Correct Option *</label>
+            <select class="form-control" name="correct_option" required>
+              <option value="">Select…</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+              <option value="D">D</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Marks</label>
+            <input class="form-control" name="marks" type="number" min="1" value="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Negative Marks</label>
+            <input class="form-control" name="negative_marks" type="number" min="0" step="0.25" value="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Explanation (optional)</label>
+          <textarea class="form-control" name="explanation" rows="2" placeholder="Explain the correct answer..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('addQModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Question</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- EDIT QUESTION MODAL -->
+<div class="modal-overlay" id="editQModal">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <span class="modal-title">Edit Question</span>
+      <button class="modal-close" onclick="closeModal('editQModal')">×</button>
+    </div>
+    <form method="POST" id="editQForm">
+      <input type="hidden" name="test_id" value="{{ test.TestID }}">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Question Text *</label>
+          <textarea class="form-control" name="question_text" id="eq_text" rows="3" required></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Option A</label>
+            <input class="form-control" name="option_a" id="eq_a" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Option B</label>
+            <input class="form-control" name="option_b" id="eq_b" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Option C</label>
+            <input class="form-control" name="option_c" id="eq_c" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Option D</label>
+            <input class="form-control" name="option_d" id="eq_d" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Correct Option</label>
+            <select class="form-control" name="correct_option" id="eq_correct">
+              <option value="A">A</option><option value="B">B</option>
+              <option value="C">C</option><option value="D">D</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Marks</label>
+            <input class="form-control" name="marks" id="eq_marks" type="number" min="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Negative Marks</label>
+            <input class="form-control" name="negative_marks" id="eq_neg" type="number" min="0" step="0.25">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Explanation</label>
+          <textarea class="form-control" name="explanation" id="eq_exp" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('editQModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Update Question</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Question data for JS -->
+<script>
+const QUESTIONS_DATA = {
+  {% for q in questions %}
+  {{ q.QuestionID }}: {
+    text: {{ q.QuestionText | tojson }},
+    a: {{ q.OptionA | tojson }},
+    b: {{ q.OptionB | tojson }},
+    c: {{ q.OptionC | tojson }},
+    d: {{ q.OptionD | tojson }},
+    correct: {{ q.CorrectOption | tojson }},
+    marks: {{ q.Marks }},
+    neg: {{ q.NegativeMarks }},
+    exp: {{ (q.Explanation or '') | tojson }}
+  }{{ ',' if not loop.last }}
+  {% endfor %}
+};
+
+function openEditModal(qid) {
+  const q = QUESTIONS_DATA[qid];
+  if (!q) return;
+  document.getElementById('eq_text').value = q.text;
+  document.getElementById('eq_a').value = q.a;
+  document.getElementById('eq_b').value = q.b;
+  document.getElementById('eq_c').value = q.c;
+  document.getElementById('eq_d').value = q.d;
+  document.getElementById('eq_correct').value = q.correct;
+  document.getElementById('eq_marks').value = q.marks;
+  document.getElementById('eq_neg').value = q.neg;
+  document.getElementById('eq_exp').value = q.exp;
+  document.getElementById('editQForm').action = `/questions/${qid}/edit`;
+  openModal('editQModal');
+}
+</script>
+{% endblock %}

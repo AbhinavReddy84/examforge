@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Courses — ExamForge{% endblock %}
+{% block content %}
+<div class="page-header flex items-center justify-between">
+  <div>
+    <h1 class="page-title">🎓 Courses</h1>
+    <p class="page-sub">{{ courses|length }} courses</p>
+  </div>
+  <button class="btn btn-primary" onclick="openModal('addCourseModal')">+ Add Course</button>
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding:0">
+    {% if courses %}
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Code</th><th>Title</th><th>Incharge</th><th>Members</th><th>Created</th></tr></thead>
+      <tbody>
+        {% for c in courses %}
+        <tr>
+          <td><span class="badge badge-accent">{{ c.Code }}</span></td>
+          <td><strong>{{ c.Title }}</strong></td>
+          <td>{{ c.InchargeName }}</td>
+          <td>{{ c.MemberCount }}</td>
+          <td class="text-sm text-muted">{{ c.CreatedAt.strftime('%d %b %Y') if c.CreatedAt else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty"><div class="empty-icon">🎓</div><div class="empty-text">No courses yet.</div></div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ADD COURSE MODAL -->
+<div class="modal-overlay" id="addCourseModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Add New Course</span>
+      <button class="modal-close" onclick="closeModal('addCourseModal')">×</button>
+    </div>
+    <form method="POST" action="{{ url_for('add_course') }}">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Course Code *</label>
+          <input class="form-control" name="code" required placeholder="CS301" maxlength="20">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Course Title *</label>
+          <input class="form-control" name="title" required placeholder="Database Management Systems">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Incharge *</label>
+          <select class="form-control" name="incharge_id" required>
+            {% for i in incharges %}
+            <option value="{{ i.UserID }}">{{ i.Name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('addCourseModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Course</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

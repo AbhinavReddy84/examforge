@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Edit Test — ExamForge{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">✏️ Edit Test</h1>
+  <p class="page-sub">{{ test.Title }}</p>
+</div>
+
+<div class="card" style="max-width:700px;margin:0 auto">
+  <div class="card-header"><span class="card-title">Test Details</span></div>
+  <div class="card-body">
+    <form method="POST">
+      <div class="form-group">
+        <label class="form-label">Test Title *</label>
+        <input class="form-control" name="title" required value="{{ test.Title }}">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Course</label>
+          <select class="form-control" name="course_id">
+            <option value="">— No Course —</option>
+            {% for c in courses %}
+            <option value="{{ c.CourseID }}" {{ 'selected' if test.CourseID == c.CourseID }}>{{ c.Code }} — {{ c.Title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Duration (minutes)</label>
+          <input class="form-control" name="duration" type="number" min="1" value="{{ test.Duration }}">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Start Time</label>
+          <input class="form-control" name="start_time" type="datetime-local"
+                 value="{{ test.StartTime.strftime('%Y-%m-%dT%H:%M') if test.StartTime else '' }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">End Time</label>
+          <input class="form-control" name="end_time" type="datetime-local"
+                 value="{{ test.EndTime.strftime('%Y-%m-%dT%H:%M') if test.EndTime else '' }}">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Pass Marks</label>
+          <input class="form-control" name="pass_marks" type="number" min="0" value="{{ test.PassMarks }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Max Attempts</label>
+          <input class="form-control" name="max_attempts" type="number" min="1" value="{{ test.MaxAttempts }}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-check">
+          <input type="checkbox" name="shuffle" value="1" {{ 'checked' if test.Shuffle }}> Shuffle question order
+        </label>
+      </div>
+      <div class="flex gap-2 mt-4">
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a href="{{ url_for('manage_tests') }}" class="btn btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
